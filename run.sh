@@ -16,8 +16,11 @@ ngpu=0
 finetune_config=./conf/finetune.yaml
 replace_spkid=0
 
+#ckpt=snapshot_iter_96400
 #ckpt=snapshot_iter_96699
-ckpt=snapshot_iter_106699
+#ckpt=snapshot_iter_96645
+#ckpt=snapshot_iter_97890
+ckpt=snapshot_iter_97815
 gpus=-1
 CUDA_VISIBLE_DEVICES=${gpus}
 stage=0
@@ -86,7 +89,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         --finetune_config=${finetune_config}
 fi
 
-# synthesize e2e
+# synthesize e2e on hifigan
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "in hifigan syn_e2e"
     python ${BIN_DIR}/../synthesize_e2e.py \
@@ -99,9 +102,32 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         --voc_ckpt=pretrained_models/hifigan_aishell3_ckpt_0.2.0/snapshot_iter_2500000.pdz \
         --voc_stat=pretrained_models/hifigan_aishell3_ckpt_0.2.0/feats_stats.npy \
         --lang=zh \
-        --text=${BIN_DIR}/../sentences.txt \
+        --text=./sentences.txt \
         --output_dir=./test_e2e/ \
         --phones_dict=${dump_dir}/phone_id_map.txt \
         --speaker_dict=${dump_dir}/speaker_id_map.txt \
-        --spk_id=$replace_spkid
+        --spk_id=$replace_spkid \
+        --ngpu=0
+fi
+
+
+# synthesize e2e on pwg
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "in pwgan syn_e2e"
+    python ${BIN_DIR}/../synthesize_e2e.py \
+        --am=fastspeech2_aishell3 \
+        --am_config=${pretrained_model_dir}/default.yaml \
+        --am_ckpt=${output_dir}/checkpoints/${ckpt}.pdz \
+        --am_stat=${pretrained_model_dir}/speech_stats.npy \
+        --voc=pwgan_aishell3 \
+        --voc_config=pretrained_models/pwg_aishell3_ckpt_0.5/default.yaml \
+        --voc_ckpt=pretrained_models/pwg_aishell3_ckpt_0.5/snapshot_iter_1000000.pdz \
+        --voc_stat=pretrained_models/pwg_aishell3_ckpt_0.5/feats_stats.npy \
+        --lang=zh \
+        --text=./sentences3.txt \
+        --output_dir=./demo5/ \
+        --phones_dict=${dump_dir}/phone_id_map.txt \
+        --speaker_dict=${dump_dir}/speaker_id_map.txt \
+        --spk_id=$replace_spkid \
+        --ngpu=0
 fi
